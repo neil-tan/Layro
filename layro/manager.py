@@ -192,6 +192,11 @@ class ConfigManager:
         if hasattr(final_config_obj, self.config_field) and user_config_path:
             setattr(final_config_obj, self.config_field, user_config_path)
             
+        # 6. Ensure the mode_field CLI value is applied - it's possible that tyro didn't handle it properly
+        if self.mode_field and cli_mode_value:
+            if hasattr(final_config_obj, self.mode_field):
+                setattr(final_config_obj, self.mode_field, cli_mode_value)
+            
         return final_config_obj
     
     def _load_default_yaml(self) -> Dict[str, Any]:

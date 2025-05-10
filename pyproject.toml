@@ -6,18 +6,18 @@ build-backend = "hatchling.build"
 name = "layro"
 version = "0.1.0"
 description = "A robust, reusable configuration management package for Python applications"
-readme = "layro/README.md"
+readme = "README.md"
 authors = [
     {name = "Neil", email = "your.email@example.com"},
 ]
-license = {text = "MIT"}
+license = {text = "Apache-2.0"}
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -37,5 +37,5 @@ requires-python = ">=3.8"
 packages = ["layro"]
 
 [tool.pytest.ini_options]
-testpaths = ["layro"]
+testpaths = ["tests"]
 python_files = "test_*.py"

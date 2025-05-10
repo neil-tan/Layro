@@ -185,6 +185,18 @@ def dict_to_dataclass(data: dict, dataclass_type: Type) -> Any:
                 else:
                     # Handle other Union types
                     field_values[field_name] = convert_value_to_type(value, field_type)
+            # Check if it's a list type that might contain dataclasses
+            elif get_origin(field_type) is list:
+                if value is not None:
+                    item_type = get_args(field_type)[0]
+                    # If the list contains dataclass instances, convert each item
+                    if hasattr(item_type, '__dataclass_fields__'):
+                        field_values[field_name] = [dict_to_dataclass(item, item_type) for item in value]
+                    else:
+                        # Otherwise, apply normal conversion
+                        field_values[field_name] = convert_value_to_type(value, field_type)
+                else:
+                    field_values[field_name] = None
             # If the field type is a dataclass, recursively convert
             elif hasattr(field_type, '__dataclass_fields__'):
                 if value is not None:
