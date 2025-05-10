@@ -53,6 +53,26 @@ config = config_manager.parse_args()
 
 For detailed documentation and advanced usage examples, see [the full documentation](layro/README.md).
 
+## Boolean CLI Arguments
+
+Layro uses the `tyro` library for CLI argument parsing, which has specific syntax for boolean flags:
+
+✅ To set a boolean flag to `True`, use: `--flag`
+✅ To set a boolean flag to `False`, use: `--no-flag`
+❌ The syntax `--flag=true` or `--flag=false` is NOT supported for boolean flags
+
+Example:
+```bash
+# This works ✓
+python train.py --fast-dev-run
+
+# This works ✓
+python train.py --no-fast-dev-run
+
+# This does NOT work ✗
+python train.py --fast-dev-run=true
+```
+
 ## License
 
-MIT License - see the [LICENSE](LICENSE) file for details.
+Apache License 2.0 - see the [LICENSE](LICENSE) file for details.

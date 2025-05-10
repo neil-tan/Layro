@@ -403,6 +403,9 @@ def test_config_manager_cli_formats(config_setup):
     config5 = config_manager.parse_args(["--no-enable-feature"])
     assert config5.enable_feature is False
     
+    # Note: tyro doesn't support --flag=true syntax for boolean flags
+    # Only --flag and --no-flag are supported
+    
     # Test nested parameters
     config6 = config_manager.parse_args(["--nested.value=600", "--nested.name=cli_nested"])
     assert config6.nested.value == 600
