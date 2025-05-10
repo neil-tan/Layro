@@ -223,7 +223,9 @@ class ConfigManager:
     
     def _load_user_yaml(self, user_config_path: Optional[Path]) -> Dict[str, Any]:
         """Load the user-specified YAML configuration file."""
-        if not user_config_path or not user_config_path.exists():
+        if not user_config_path:
             return {}
             
+        # If the user explicitly specified a config file, it should exist and be valid
+        # We'll let load_yaml_config raise appropriate errors if it doesn't exist or has YAML errors
         return load_yaml_config(user_config_path) 
