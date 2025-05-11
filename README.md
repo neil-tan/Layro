@@ -8,7 +8,7 @@ A robust, reusable configuration management package for Python applications, pro
 
 ## Features
 
-- **Layered Configuration**: Combine settings from CLI arguments, user config files, mode-specific defaults, base defaults, and dataclass defaults with clear priority order
+- **Layered Configuration**: Combine settings from CLI arguments, multiple user config files, mode-specific defaults, base defaults, and dataclass defaults with clear priority order
 - **Type-Safe**: Built on Python dataclasses with automatic type validation and conversion
 - **Developer-Friendly**: Clean API, intelligent CLI help text, and comprehensive error messages
 - **Flexible**: Works with nested configurations and supports various data types
@@ -34,7 +34,7 @@ class ModelConfig:
 
 @dataclass
 class TrainingConfig:
-    config: Optional[Path] = None  # For user config file
+    config: Optional[Path] = None  # For user config file (stores last config when multiple are used)
     learning_rate: float = 0.001
     model_type: str = "basic"      # Used as a mode selector
     model: ModelConfig = field(default_factory=ModelConfig)
@@ -52,6 +52,15 @@ config = config_manager.parse_args()
 ## Documentation
 
 For detailed documentation and advanced usage examples, see [the full documentation](layro/README.md).
+
+## Multiple Config Files
+
+Layro supports multiple configuration files with layered overrides:
+
+```bash
+# Base configuration + project + user overrides (later files override earlier ones)
+python train.py --config=base.yaml --config=project.yaml --config=user.yaml
+```
 
 ## Boolean CLI Arguments
 

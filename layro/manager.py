@@ -92,7 +92,8 @@ class ConfigManager:
         # Add config_field argument (e.g., --config)
         # argparse stores dest with underscores, so normalize self.config_field
         config_field_dest = self.config_field.replace('-', '_')
-        pre_parser.add_argument(f"--{self.config_field}", dest=config_field_dest, type=str, default=None)
+        pre_parser.add_argument(f"--{self.config_field}", dest=config_field_dest, type=str, action="append", default=None, 
+                               help=f"Path to config file(s). Can be specified multiple times for layered configuration.")
 
         # Add mode_field argument (e.g., --model-type) if it exists
         cli_mode_value = None
@@ -111,9 +112,9 @@ class ConfigManager:
 
         directive_ns, remaining_argv_for_tyro = pre_parser.parse_known_args(raw_argv)
         
-        user_config_path_str = getattr(directive_ns, config_field_dest, None)
-        user_config_path = Path(user_config_path_str) if user_config_path_str else None
-        self._debug(f"Pre-parsed user_config_path: {user_config_path}")
+        user_config_paths_str = getattr(directive_ns, config_field_dest, None) or []
+        user_config_paths = [Path(path) for path in user_config_paths_str] if user_config_paths_str else []
+        self._debug(f"Pre-parsed user_config_paths: {user_config_paths}")
 
         if self.mode_field:
             cli_mode_value = getattr(directive_ns, self.mode_field.replace('-', '_'), None)
@@ -139,7 +140,7 @@ class ConfigManager:
             self._debug(f"Tyro default after default.yaml: {final_default_dict_for_tyro}")
 
         #    c. Load user_yaml_content to help determine authoritative_mode
-        user_yaml_content = self._load_user_yaml(user_config_path) if user_config_path else {}
+        user_yaml_content = self._load_user_yaml(user_config_paths) if user_config_paths else {}
 
         #    d. Determine the authoritative_mode that governs which mode_default.yaml is loaded
         #       Priority: Pre-parsed CLI > User YAML > Default YAML > Dataclass
@@ -169,10 +170,12 @@ class ConfigManager:
         # 3. Convert the final merged dictionary to a dataclass instance for tyro's default
         default_instance_for_tyro = dict_to_dataclass(final_default_dict_for_tyro, self.config_class)
 
-        #    Ensure the pre-parsed user_config_path is correctly set on this instance,
+        #    Ensure the pre-parsed user_config_paths is correctly set on this instance,
         #    as it's a special field often not part of the YAMLs themselves.
-        if hasattr(default_instance_for_tyro, self.config_field) and user_config_path:
-             setattr(default_instance_for_tyro, self.config_field, user_config_path)
+        if hasattr(default_instance_for_tyro, self.config_field) and user_config_paths:
+            # Store the last config path as the canonical path
+            if user_config_paths:
+                setattr(default_instance_for_tyro, self.config_field, user_config_paths[-1])
         
         # 4. Parse remaining CLI arguments with tyro, using the merged YAMLs as default
         #    tyro will override values in default_instance_for_tyro with args from remaining_argv_for_tyro.
@@ -186,11 +189,13 @@ class ConfigManager:
         except SystemExit as e:
             sys.exit(e.code) # Propagate exit for --help, etc.
             
-        # 5. Final check: Ensure the actual user_config_path used for loading is on the final object.
+        # 5. Final check: Ensure the actual user_config_paths used for loading is on the final object.
         #    This is mostly for consistency, as tyro might have set it to None if 'config_field'
         #    wasn't in remaining_argv_for_tyro and its default was None.
-        if hasattr(final_config_obj, self.config_field) and user_config_path:
-            setattr(final_config_obj, self.config_field, user_config_path)
+        if hasattr(final_config_obj, self.config_field) and user_config_paths:
+            # Store the last config path as the canonical path
+            if user_config_paths:
+                setattr(final_config_obj, self.config_field, user_config_paths[-1])
             
         # 6. Ensure the mode_field CLI value is applied - it's possible that tyro didn't handle it properly
         if self.mode_field and cli_mode_value:
@@ -221,11 +226,30 @@ class ConfigManager:
             
         return load_yaml_config(mode_default_yaml_path)
     
-    def _load_user_yaml(self, user_config_path: Optional[Path]) -> Dict[str, Any]:
-        """Load the user-specified YAML configuration file."""
-        if not user_config_path:
-            return {}
+    def _load_user_yaml(self, user_config_paths: Optional[List[Path]]) -> Dict[str, Any]:
+        """Load the user-specified YAML configuration files.
+        
+        When multiple config files are provided, they are merged in order, with later files
+        taking precedence over earlier ones.
+        
+        Args:
+            user_config_paths: List of paths to user config files
             
-        # If the user explicitly specified a config file, it should exist and be valid
-        # We'll let load_yaml_config raise appropriate errors if it doesn't exist or has YAML errors
-        return load_yaml_config(user_config_path) 
+        Returns:
+            Merged dictionary from all user config files
+        """
+        if not user_config_paths:
+            return {}
+        
+        # Start with an empty dict
+        merged_config = {}
+        
+        # Process each config file in order, with later files overriding earlier ones
+        for config_path in user_config_paths:
+            # If the user explicitly specified a config file, it should exist and be valid
+            # load_yaml_config will raise appropriate errors if it doesn't exist or has YAML errors
+            config_data = load_yaml_config(config_path)
+            # Merge this config into the accumulated result
+            merged_config = deep_merge(config_data, merged_config)
+            
+        return merged_config 

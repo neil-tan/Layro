@@ -6,7 +6,7 @@ A robust, reusable configuration management package for Python applications, pro
 
 - **Layered Configuration with Priority Order**:
   1. Command-Line Arguments (CLI) - Highest priority, parsed by `tyro`.
-  2. User Config File (specified by an argument like `--config`) - Second priority.
+  2. User Config Files (specified by one or more `--config` arguments) - Second priority, with later files overriding earlier ones.
   3. Mode-specific Default Config (e.g., `default_flow.yaml` if `model_type="flow"`) - Third priority.
   4. Base Default Config (e.g., `default.yaml`) - Fourth priority.
   5. Dataclass Defaults - Lowest priority.
@@ -61,7 +61,8 @@ class ModelConfig:
 
 @dataclass
 class TrainingConfig:
-    # Special field for the user config file path, name configurable via ConfigManager
+    # Special field for the user config file path
+    # When multiple config files are provided, this will store the path to the last one
     config: Optional[Path] = None 
     learning_rate: float = 0.001
     model_type: str = "basic" # Example mode_field
@@ -116,6 +117,34 @@ learning_rate: 0.0007
 # model_type: "advanced" # Can also be set here
 ```
 
+## Multiple Configuration Files
+
+Layro supports specifying multiple configuration files that are merged together, with later files taking precedence over earlier ones:
+
+```python
+# In Python, the config manager handles multiple files automatically
+config = config_manager.parse_args()  # Will process all --config arguments
+```
+
+**Example usage with multiple configuration files:**
+
+```bash
+# Base configuration + project-specific overrides + user-specific overrides
+python your_script.py --config=base.yaml --config=project.yaml --config=user.yaml
+```
+
+When multiple configuration files are specified, they are processed in order:
+1. Files are loaded and validated in the order specified
+2. Settings from later files override those from earlier files
+3. Nested structures are deeply merged (not completely replaced)
+4. The `config` field in your dataclass will store the path to the last specified config file
+
+This allows for a flexible configuration approach:
+- Base configs with common settings
+- Project-specific configs that override some base settings
+- User-specific configs with personal preferences
+- All still overridable via command-line arguments
+
 ## Command-line Usage
 
 ```bash
@@ -127,6 +156,12 @@ python your_script.py --learning-rate=0.01 --model-type=advanced --model.num-lay
 
 # Use a specific config file (which itself can be overridden by CLI args)
 python your_script.py --config=my_custom_config.yaml --model.hidden-size=512
+
+# Use multiple config files, with later files overriding earlier ones
+python your_script.py --config=base_config.yaml --config=override_config.yaml
+
+# Multiple config files with CLI overrides
+python your_script.py --config=base_config.yaml --config=project_config.yaml --config=user_overrides.yaml --learning-rate=0.003
 ```
 
 ## Dependencies
